@@ -45,6 +45,15 @@ class TaskUpdate(BaseModel):
     completed: bool
 
 
+class ReorderTask(BaseModel):
+    id: int
+    position: int
+
+
+class ReorderRequest(BaseModel):
+    tasks: List[ReorderTask]
+
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -108,3 +117,26 @@ def delete_task(task_id: int, db: Session = Depends(get_db)) -> dict:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Data conflict error: {str(e)}")
     return {"ok": True}
+
+
+@app.post("/tasks/reorder")
+def reorder_tasks(request: ReorderRequest, db: Session = Depends(get_db)) -> dict:
+    task_ids = [task.id for task in request.tasks]
+    db_tasks = db.execute(select(Task).where(Task.id.in_(task_ids)).with_for_update()).scalars().all()
+    if len(db_tasks) != len(task_ids):
+        found_task_ids = {task.id for task in db_tasks}
+        missing_task_ids = set(task_ids) - {int(task_id) for task_id in found_task_ids}
+        raise HTTPException(status_code=400, detail=f"Some tasks not found: {missing_task_ids}")
+    for task_data in request.tasks:
+        db_task = next((task for task in db_tasks if task.id == task_data.id), None)
+        if db_task:
+            db_task.position = task_data.position
+        else:
+            raise HTTPException(status_code=404, detail=f"Task with id {task_data.id} not found")
+    try:
+        db.commit()
+    except StaleDataError as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Data conflict error: {str(e)}")
+
+    return {"message": "Tasks reordered successfully"}
