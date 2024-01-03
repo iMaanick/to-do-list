@@ -1,0 +1,33 @@
+.Task {
+    background: #fff;
+    height: 60px;
+    border-radius: 8px;
+    padding: 0;
+    margin-bottom: 8px;
+    color: #888;
+    font-weight: 500;
+    user-select: none;
+    .reorder-handle {
+        cursor: grab;
+        padding: 5px;
+    }
+    .TaskTitle {
+        display: inline-block;
+        width:100%;
+    }
+    padding: 0 16px;
+}
+
+ul {
+    margin:0;
+    padding: 0;
+}
+
+
+.TaskInnerWrapper {
+    width:100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
